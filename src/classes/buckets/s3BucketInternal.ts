@@ -111,7 +111,7 @@ export class S3BucketInternal {
         const command = new PutObjectCommand({
             Bucket: this.bucketName,
             Key: s3ObjectBuilder.Id,
-            Body: s3ObjectBuilder.Body,
+            Body: await s3ObjectBuilder.Body,
             Metadata: s3ObjectBuilder.Metadata.toRecord()
         });
         await this.s3.send(command);
@@ -133,7 +133,7 @@ export class S3BucketInternal {
         if (!uploadId) throw new Error("Failed to initialize multipart upload");
 
         const partSize = getConfig().multiPartUpload.maxPartSize;
-        const partsCount = Math.ceil(s3ObjectBuilder.DataSize / partSize);
+        const partsCount = Math.ceil(await s3ObjectBuilder.DataSize / partSize);
 
         console.log(`Uploading ${partsCount} parts...`)
 
@@ -143,7 +143,7 @@ export class S3BucketInternal {
         for (let i = 0; i < partsCount; i++) {
             console.log(`Uploading part ${i + 1} of ${partsCount}`)
             const start = i * partSize;
-            const end = Math.min(start + partSize, s3ObjectBuilder.DataSize);
+            const end = Math.min(start + partSize, await s3ObjectBuilder.DataSize);
             const partBuffer = (await s3ObjectBuilder.AsBuffer()).slice(start, end);
 
             const uploadPartCommand = new UploadPartCommand({

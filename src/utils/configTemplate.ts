@@ -4,7 +4,7 @@ import {MB, Minute} from "./constants";
 /**
  * The configuration for the s3 library
  */
-export interface configTemplate {
+export interface ConfigTemplate {
 
     /**
      * The access key and secret access key of the aws account
@@ -58,7 +58,7 @@ export interface configTemplate {
     appendFileTypeToKey: boolean,
 }
 
-export const defaultConfig: Partial<configTemplate> = {
+export const defaultConfig: Partial<ConfigTemplate> = {
     multiPartUpload: {
         maxPartSize: 5 * MB,
         enabledThreshold: 5 * MB,

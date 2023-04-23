@@ -1,6 +1,8 @@
 import {Readable} from "stream";
 
-export function blobToBuffer(blob: Blob): Promise<Buffer> {
+type AcceptedDataTypes = Readable | ReadableStream | Blob | string | Uint8Array | Buffer
+
+function blobToBuffer(blob: Blob): Promise<Buffer> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -12,7 +14,7 @@ export function blobToBuffer(blob: Blob): Promise<Buffer> {
     });
 }
 
-export function readableToBuffer(stream: Readable): Promise<Buffer> {
+function readableToBuffer(stream: Readable): Promise<Buffer> {
     return new Promise((resolve, reject) => {
         const chunks: Uint8Array[] = [];
         stream.on('data', chunk => chunks.push(chunk));
@@ -21,7 +23,7 @@ export function readableToBuffer(stream: Readable): Promise<Buffer> {
     });
 }
 
-export function readableStreamToBuffer(stream: ReadableStream): Promise<Buffer> {
+function readableStreamToBuffer(stream: ReadableStream): Promise<Buffer> {
     return new Promise(() => {
         const reader = stream.getReader();
         const chunks: Uint8Array[] = [];
@@ -43,4 +45,14 @@ export function readableStreamToBuffer(stream: ReadableStream): Promise<Buffer> 
             }
         });
     });
+}
+
+export async function ConvertToBuffer(data: AcceptedDataTypes): Promise<Buffer> {
+    if (Buffer.isBuffer(data)) return data;
+    if (data instanceof Uint8Array) return Buffer.from(data.buffer);
+    if (typeof data === 'string') return Buffer.from(data);
+    if (data instanceof Blob) return await blobToBuffer(data);
+    if (data instanceof Readable) return await readableToBuffer(data);
+    if (data instanceof ReadableStream) return await readableStreamToBuffer(data);
+    throw new Error("Invalid data type");
 }

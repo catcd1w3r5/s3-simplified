@@ -3,28 +3,36 @@ import {Metadata} from "../misc/metadata";
 import {generateUUID} from "../../utils/generateUUID";
 import {IMetadata} from "../../interfaces";
 import {FileTypeParser} from "../../utils/fileTypeParser";
-import {blobToBuffer, readableStreamToBuffer, readableToBuffer} from "../../utils/convertToBuffer";
+import {ConvertToBuffer} from "../../utils/convertToBuffer";
 import {getConfig} from "../../utils/config";
 
 type AcceptedDataTypes = Readable | ReadableStream | Blob | string | Uint8Array | Buffer
 
 export class S3ObjectBuilder {
-    constructor(private data: AcceptedDataTypes, private metadata: Metadata = new Metadata()) {
+    private data: BufferManager
+
+    constructor(data: AcceptedDataTypes, private metadata: Metadata = new Metadata()) {
         if (this.UUID === undefined) this.UUID = generateUUID();
+        this.data = new BufferManager(data);
     }
 
-    public get Body(): AcceptedDataTypes {
-        return this.data;
+    public get Body(): Promise<Buffer> {
+        return this.data.getBuffer();
     }
 
     public get Metadata(): IMetadata {
         return this.metadata;
     }
 
-    public get DataSize(): number {
+    public get DataSize(): Promise<number> {
         const sizeStr = this.metadata.get("Content-Length");
-        if (sizeStr === undefined) throw new Error("Content-Length is undefined");
-        return parseInt(sizeStr);
+        if (sizeStr !== undefined) return new Promise<number>(resolve => resolve(parseInt(sizeStr)));
+        return this.data.getBuffer().then(buffer => {
+            const size = buffer.length;
+            this.metadata.set("Content-Length", size.toString());
+            return size;
+        });
+
     }
 
     public get Type(): string | undefined {
@@ -71,15 +79,24 @@ export class S3ObjectBuilder {
         return newId;
     }
 
-    // Some of the methods results in the data being "casted" to a Buffer, while others copy the data directly to a buffer.
     public async AsBuffer(): Promise<Buffer> {
-        const data = this.data;
-        if (Buffer.isBuffer(data)) return data;
-        if (data instanceof Uint8Array) return Buffer.from(data.buffer);
-        if (typeof data === 'string') return Buffer.from(data);
-        if (data instanceof Blob) return blobToBuffer(data);
-        if (data instanceof Readable) return readableToBuffer(data);
-        if (data instanceof ReadableStream) return readableStreamToBuffer(data);
-        throw new Error("Invalid data type");
+        return await this.data.getBuffer();
+    }
+
+
+}
+
+class BufferManager {
+    private buffer?: Buffer
+    private readonly promise: Promise<Buffer>
+
+    constructor(data: AcceptedDataTypes) {
+        this.promise = ConvertToBuffer(data)
+    }
+
+    public async getBuffer(): Promise<Buffer> {
+        if (this.buffer) return this.buffer;
+        this.buffer = await this.promise;
+        return this.buffer;
     }
 }

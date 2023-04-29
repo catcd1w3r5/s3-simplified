@@ -6,6 +6,18 @@ import {Config} from "../../interfaces/config";
 export class S3Object implements IS3Object {
 
     constructor(private metadata: IMetadata, private bucketSource: S3BucketInternal, private config: Config, private body?: Readable) {
+        const editableMetadata = this.metadata.asRecord();
+        const type = this.Type;
+        if (this.Extension !== undefined) return;
+        if (type !== undefined) {
+            editableMetadata["file-type"] = type.split("/")[1];
+            return;
+        }
+        //guess from filename
+        const filename = this.key;
+        const extension = filename.split(".")[1];
+        if (extension !== undefined) editableMetadata["file-type"] = extension;
+
     }
 
     public get Body(): Readable | undefined {
@@ -27,15 +39,15 @@ export class S3Object implements IS3Object {
     }
 
     public get Type(): string | undefined {
-        return this.metadata.get("Content-Type");
+        return this.metadata.get("content-type");
     }
 
     public get Extension(): string | undefined {
-        return this.metadata.get("File-Type");
+        return this.metadata.get("file-type");
     }
 
     public get UUID(): string {
-        const uuid = this.metadata.get("Content-Disposition");
+        const uuid = this.metadata.get("content-disposition");
         if (uuid) return uuid;
         throw new Error("UUID not found");
     }

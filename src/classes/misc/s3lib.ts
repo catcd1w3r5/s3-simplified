@@ -1,22 +1,60 @@
-import {CreateBucketCommand, DeleteBucketCommand, HeadBucketCommand, ListBucketsCommand, S3} from "@aws-sdk/client-s3";
-import {S3Bucket} from "../buckets/s3Bucket";
 import {IS3, S3BucketService} from "../../interfaces";
-import {Regions} from "../../types";
-import {InvalidBucketName, MissingBucket} from "./errors";
-import {getConfig} from "../../utils/config";
+import {InvalidBucketName} from "./errors";
+import {UserConfig} from "../../interfaces";
+import {bucketStatus} from "../../types";
+import {S3libInternal} from "./s3libInternal";
 
 export class S3Lib implements IS3 {
-    public static readonly Default: IS3 = new S3Lib();
-    public readonly s3: S3;
-    public readonly region: Regions;
+    private readonly internal: S3libInternal;
 
-    constructor(region: Regions = getConfig().region, accessKeyId: string = getConfig().accessKey.id, secretAccessKey: string = getConfig().accessKey.secret) {
-        this.s3 = new S3({region, credentials: {accessKeyId, secretAccessKey}});
-        this.region = region;
+    constructor(config: UserConfig) {
+        this.internal = new S3libInternal(config);
     }
 
     public async createBucket(bucketName: string): Promise<S3BucketService> {
         console.log("Creating bucket: " + bucketName);
+        this.validateBucketName(bucketName);
+        return this.internal.createBucket(bucketName);
+    }
+
+    public async deleteBucket(bucketName: string): Promise<void> {
+        await this.assetBucketOwnership(bucketName);
+        return this.internal.deleteBucket(bucketName);
+    }
+
+    public async listBuckets(): Promise<Array<string>> {
+        return await this.internal.listBuckets();
+    }
+
+    public async getBucket(bucketName: string): Promise<S3BucketService> {
+        await this.assetBucketOwnership(bucketName);
+        return this.internal.getBucket(bucketName);
+    }
+
+    public async getOrCreateBucket(bucketName: string): Promise<S3BucketService> {
+        const bucketStatus = await this.getBucketStatus(bucketName);
+        switch (bucketStatus) {
+            case 'owned':
+                return this.internal.getBucket(bucketName);
+            case 'not owned':
+                throw new InvalidBucketName(bucketName, `${bucketName} is owned by another user`);
+            case 'not found':
+                return this.createBucket(bucketName);
+        }
+    }
+
+    public async getBucketStatus(bucketName: string): Promise<bucketStatus> {
+        return this.internal.getBucketStatus(bucketName);
+    }
+
+    private async assetBucketOwnership(bucketName: string): Promise<void> {
+        const bucketStatus = await this.getBucketStatus(bucketName);
+        if (bucketStatus !== 'owned') {
+            throw new InvalidBucketName(bucketName, `${bucketName} is not accessible by the user`);
+        }
+    }
+
+    private validateBucketName(bucketName: string): void {
         //Naming rules
         // https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
 
@@ -35,54 +73,6 @@ export class S3Lib implements IS3 {
             throw new InvalidBucketName(bucketName, `${bucketName} must not end with be -s3alias or --ol-s3`);
         if (bucketName.startsWith('xn--'))
             throw new InvalidBucketName(bucketName, `${bucketName} must not start with be xn--`);
-
-        const command = new CreateBucketCommand({Bucket: bucketName});
-        await this.s3.send(command);
-        return this.getBucketInternal(bucketName);
-    }
-
-    public async deleteBucket(bucketName: string): Promise<void> {
-        if (!await this.containsBucket(bucketName))
-            throw new MissingBucket(bucketName)
-        const command = new DeleteBucketCommand({Bucket: bucketName});
-        await this.s3.send(command);
-    }
-
-    public async listBuckets(): Promise<Array<string>> {
-        const command = new ListBucketsCommand({});
-        const response = await this.s3.send(command);
-        return response.Buckets ?
-            response.Buckets.map(bucket => bucket.Name || '[unknown]')
-            : [];
-    }
-
-    public async getBucket(bucketName: string): Promise<S3BucketService> {
-        if (!await this.containsBucket(bucketName))
-            throw new MissingBucket(bucketName)
-        return this.getBucketInternal(bucketName);
-
-    }
-
-    public async getOrCreateBucket(bucketName: string): Promise<S3BucketService> {
-        if (await this.containsBucket(bucketName))
-            return this.getBucketInternal(bucketName);
-        return this.createBucket(bucketName);
-    }
-
-    public async containsBucket(bucketName: string): Promise<boolean> {
-        try {
-            const command = new HeadBucketCommand({Bucket: bucketName});
-            await this.s3.send(command);
-            return true;
-        } catch (error) {
-            // @ts-ignore
-            if (error.name === undefined || error.name !== "NoSuchBucket") throw error;
-            return false;
-        }
-    }
-
-    private getBucketInternal(bucketName: string): S3Bucket {
-        return new S3Bucket(this, bucketName);
     }
 }
 

@@ -1,10 +1,11 @@
 import {Readable} from "stream";
-import {Metadata} from "../misc/metadata";
 import {IMetadata, IS3Object, IS3ObjectJSON} from "../../interfaces";
 import {S3BucketInternal} from "../buckets/s3BucketInternal";
+import {Config} from "../../interfaces/config";
 
 export class S3Object implements IS3Object {
-    constructor(private metadata: IMetadata = new Metadata(), private bucketSource: S3BucketInternal, private body?: Readable) {
+
+    constructor(private metadata: IMetadata, private bucketSource: S3BucketInternal, private config: Config, private body?: Readable) {
     }
 
     public get Body(): Readable | undefined {
@@ -46,7 +47,9 @@ export class S3Object implements IS3Object {
     }
 
     public async generateLink(): Promise<string> {
-        return await this.bucketSource.isPublic() ? this.bucketSource.generatePublicUrl(this.key) : await this.bucketSource.generateSignedUrl(this.key);
+        return await this.bucketSource.isPublic() ?
+            this.bucketSource.generatePublicUrl(this.key) :
+            await this.bucketSource.generateSignedUrl(this.key, this.config.signedUrl);
     }
 
     public async toJSON(): Promise<IS3ObjectJSON> {

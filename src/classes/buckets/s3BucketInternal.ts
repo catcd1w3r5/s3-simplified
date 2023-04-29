@@ -16,11 +16,10 @@ import {
 import {S3Object} from "../objects/s3Object";
 import {Metadata} from "../misc/metadata";
 import {IS3Object} from "../../interfaces";
-import {getConfig} from "../../utils/config";
-import {S3Lib} from "../misc/s3lib";
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
 import {S3ObjectBuilder} from "../objects/s3ObjectBuilder";
 import {Readable} from "stream";
+import {Config, ObjectCreationConfig, SignedUrlConfig} from "../../interfaces/config";
 
 /**
  * An unsafe version of S3 bucket with no validation.
@@ -29,19 +28,17 @@ export class S3BucketInternal {
     //bucket info
     public readonly bucketName: string;
     public readonly bucketUrl: string;
-    //s3
-    protected readonly s3: S3;
     //cached
     private isPublic_cache?: boolean;
 
     /**
      * @internal
-     * @param lib
+     * @param s3 The s3 client to use
+     * @param config
      * @param bucketName
      */
-    public constructor(lib: S3Lib, bucketName: string) {
-        this.s3 = lib.s3;
-        this.bucketUrl = `https://${bucketName}.s3.${lib.region}.amazonaws.com`;
+    public constructor(private readonly s3:S3, config: Config, bucketName: string) {
+        this.bucketUrl = `https://${bucketName}.s3.${config.region}.amazonaws.com`;
         this.bucketName = bucketName;
     }
 
@@ -54,7 +51,7 @@ export class S3BucketInternal {
         const aclResponse = await bucket.getBucketACL();
 
         for (const grant of aclResponse.Grants || []) {
-            if(grant.Grantee === undefined) continue;
+            if (grant.Grantee === undefined) continue;
             if ((grant.Grantee.URI === "http://acs.amazonaws.com/groups/global/AllUsers" || grant.Grantee.URI === "http://acs.amazonaws.com/groups/global/AuthenticatedUsers")
                 && (grant.Permission === "READ" || grant.Permission === "FULL_CONTROL")) {
                 return true;
@@ -64,7 +61,7 @@ export class S3BucketInternal {
         try {
 
             const policyResponse = await bucket.getBucketPolicies();
-            if(policyResponse.Policy === undefined) return false;
+            if (policyResponse.Policy === undefined) return false;
             const policy = JSON.parse(policyResponse.Policy);
 
             for (const statement of policy.Statement) {
@@ -95,49 +92,63 @@ export class S3BucketInternal {
         return this.isPublic_cache;
     }
 
-    public async generateSignedUrl(key: string): Promise<string> {
+    public async generateSignedUrl(key: string, signedUrlConfig: SignedUrlConfig): Promise<string> {
         console.log("generating Signed Url");
         return getSignedUrl(this.s3, new GetObjectCommand({
             Bucket: this.bucketName,
             Key: key
-        }), {expiresIn: getConfig().signedUrl.expiration});
+        }), {expiresIn: signedUrlConfig.expiration});
     }
 
     public generatePublicUrl(key: string): string {
         return `${this.bucketUrl}/${key}`;
     }
 
-    public async createObject_Single(s3ObjectBuilder: S3ObjectBuilder): Promise<IS3Object> {
+    public getS3ObjectId(s3ObjectBuilder: S3ObjectBuilder, objectConfig: ObjectCreationConfig): string {
+        const metadata = s3ObjectBuilder.Metadata.asRecord();
+        if (metadata["identifier"]) return metadata["identifier"];
+        const uuid = s3ObjectBuilder.UUID;
+        const ext = s3ObjectBuilder.Extension; // This will generate the extension if it doesn't exist, so we call it even if we don't need it.
+        const id = (objectConfig.appendFileTypeToKey) ? uuid + "." + ext : uuid;
+        metadata["identifier"] = id;
+        return id;
+    }
+
+    public async createObject_Single(s3ObjectBuilder: S3ObjectBuilder, config: Config): Promise<IS3Object> {
+        const objectConfig = config.objectCreation;
+        const id = this.getS3ObjectId(s3ObjectBuilder, objectConfig);
+
         const command = new PutObjectCommand({
             Bucket: this.bucketName,
-            Key: s3ObjectBuilder.Id,
+            Key: id,
             Body: await s3ObjectBuilder.Body,
             Metadata: s3ObjectBuilder.Metadata.toRecord()
         });
         await this.s3.send(command);
-        return new S3Object(s3ObjectBuilder.Metadata, this);
+        return new S3Object(s3ObjectBuilder.Metadata, this, config);
     }
 
-    public async createObject_Multipart(s3ObjectBuilder: S3ObjectBuilder): Promise<IS3Object> {
+    public async createObject_Multipart(s3ObjectBuilder: S3ObjectBuilder, config: Config): Promise<IS3Object> {
+        const objectConfig = config.objectCreation;
+        const id = this.getS3ObjectId(s3ObjectBuilder, objectConfig);
+        const partSize = objectConfig.multiPartUpload.maxPartSize
         // Multipart upload
         console.log("Using multipart upload")
 
-        console.log(s3ObjectBuilder.Id);
+        console.log(id);
         const createMultipartUploadCommand = new CreateMultipartUploadCommand({
             Bucket: this.bucketName,
-            Key: s3ObjectBuilder.Id,
+            Key: id,
             Metadata: s3ObjectBuilder.Metadata.toRecord()
         });
         const createMultipartUploadResponse = await this.s3.send(createMultipartUploadCommand);
         const uploadId = createMultipartUploadResponse.UploadId;
         if (!uploadId) throw new Error("Failed to initialize multipart upload");
 
-        const partSize = getConfig().multiPartUpload.maxPartSize;
         const partsCount = Math.ceil(await s3ObjectBuilder.DataSize / partSize);
 
         console.log(`Uploading ${partsCount} parts...`)
 
-        console.log(s3ObjectBuilder.Id);
         //Consolidate all the promises into one array and await them all at once rather than one by one
         const promises = new Array<Promise<UploadPartCommandOutput>>(partsCount);
         for (let i = 0; i < partsCount; i++) {
@@ -148,7 +159,7 @@ export class S3BucketInternal {
 
             const uploadPartCommand = new UploadPartCommand({
                 Bucket: this.bucketName,
-                Key: s3ObjectBuilder.Id,
+                Key: id,
                 UploadId: uploadId,
                 PartNumber: i + 1,
                 Body: partBuffer
@@ -164,10 +175,10 @@ export class S3BucketInternal {
         });
         console.log("Completing multipart upload...")
 
-        console.log(s3ObjectBuilder.Id);
+        console.log(id);
         const completeMultipartUploadCommand = new CompleteMultipartUploadCommand({
             Bucket: this.bucketName,
-            Key: s3ObjectBuilder.Id,
+            Key: id,
             UploadId: uploadId,
             MultipartUpload: {
                 Parts: completedParts
@@ -175,7 +186,7 @@ export class S3BucketInternal {
         });
         await this.s3.send(completeMultipartUploadCommand);
         console.log("Multipart upload complete");
-        return new S3Object(s3ObjectBuilder.Metadata, this);
+        return new S3Object(s3ObjectBuilder.Metadata, this, config);
     }
 
     public async getBucketACL() {
@@ -193,12 +204,13 @@ export class S3BucketInternal {
         return this.s3.send(policyCommand);
     }
 
-    public async getObject(key: string, requireBody = false): Promise<IS3Object> {
+    public async getObject(key: string, config: Config, requireBody = false): Promise<IS3Object> {
         const command = new GetObjectCommand({Bucket: this.bucketName, Key: key});
         const response = await this.s3.send(command);
+        const metadata = new Metadata(response.Metadata, key);
         return requireBody ?
-            new S3Object(new Metadata(response.Metadata), this, response.Body as Readable) :
-            new S3Object(new Metadata(response.Metadata), this);
+            new S3Object(metadata, this, config, response.Body as Readable) :
+            new S3Object(metadata, this, config);
     }
 
     public async deleteObject(key: string): Promise<void> {

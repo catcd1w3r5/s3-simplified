@@ -1,7 +1,8 @@
 import {IMetadata} from "../../interfaces";
 
 export class Metadata implements IMetadata {
-    constructor(private metadata: Record<string, string> = {}) {
+    constructor(private metadata: Record<string, string> = {},identifier?:string) {
+        if(identifier) this.metadata["identifier"] = identifier;
     }
 
     public get Keys(): string[] {

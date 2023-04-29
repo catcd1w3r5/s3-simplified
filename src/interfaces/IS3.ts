@@ -1,4 +1,5 @@
 import {S3BucketService} from "./S3BucketService";
+import {bucketStatus} from "../types";
 
 /**
  * An interface for interacting with Amazon S3.
@@ -42,9 +43,9 @@ export interface IS3 {
     getOrCreateBucket(bucketName: string): Promise<S3BucketService>
 
     /**
-     * Checks if the bucket with the given name exists.
-     * @param {string} bucketName - The name of the bucket to check.
-     * @returns {Promise<boolean>} A promise that resolves to true if the bucket exists, false otherwise.
+     * Returns the status of the given bucket.
+     * @param bucketName - The name of the bucket.
+     * @returns {Promise<bucketStatus>} A promise that resolves to the status of the bucket.
      */
-    containsBucket(bucketName: string): Promise<boolean>
+    getBucketStatus(bucketName: string): Promise<bucketStatus>
 }

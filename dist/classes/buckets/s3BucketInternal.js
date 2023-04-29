@@ -40,7 +40,6 @@ exports.S3BucketInternal = void 0;
 var client_s3_1 = require("@aws-sdk/client-s3");
 var s3Object_1 = require("../objects/s3Object");
 var metadata_1 = require("../misc/metadata");
-var config_1 = require("../../utils/config");
 var s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 /**
  * An unsafe version of S3 bucket with no validation.
@@ -48,12 +47,13 @@ var s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 var S3BucketInternal = /** @class */ (function () {
     /**
      * @internal
-     * @param lib
+     * @param s3 The s3 client to use
+     * @param config
      * @param bucketName
      */
-    function S3BucketInternal(lib, bucketName) {
-        this.s3 = lib.s3;
-        this.bucketUrl = "https://".concat(bucketName, ".s3.").concat(lib.region, ".amazonaws.com");
+    function S3BucketInternal(s3, config, bucketName) {
+        this.s3 = s3;
+        this.bucketUrl = "https://".concat(bucketName, ".s3.").concat(config.region, ".amazonaws.com");
         this.bucketName = bucketName;
     }
     /**
@@ -133,31 +133,43 @@ var S3BucketInternal = /** @class */ (function () {
             });
         });
     };
-    S3BucketInternal.prototype.generateSignedUrl = function (key) {
+    S3BucketInternal.prototype.generateSignedUrl = function (key, signedUrlConfig) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 console.log("generating Signed Url");
                 return [2 /*return*/, (0, s3_request_presigner_1.getSignedUrl)(this.s3, new client_s3_1.GetObjectCommand({
                         Bucket: this.bucketName,
                         Key: key
-                    }), { expiresIn: (0, config_1.getConfig)().signedUrl.expiration })];
+                    }), { expiresIn: signedUrlConfig.expiration })];
             });
         });
     };
     S3BucketInternal.prototype.generatePublicUrl = function (key) {
         return "".concat(this.bucketUrl, "/").concat(key);
     };
-    S3BucketInternal.prototype.createObject_Single = function (s3ObjectBuilder) {
+    S3BucketInternal.prototype.getS3ObjectId = function (s3ObjectBuilder, objectConfig) {
+        var metadata = s3ObjectBuilder.Metadata.asRecord();
+        if (metadata["identifier"])
+            return metadata["identifier"];
+        var uuid = s3ObjectBuilder.UUID;
+        var ext = s3ObjectBuilder.Extension; // This will generate the extension if it doesn't exist, so we call it even if we don't need it.
+        var id = (objectConfig.appendFileTypeToKey) ? uuid + "." + ext : uuid;
+        metadata["identifier"] = id;
+        return id;
+    };
+    S3BucketInternal.prototype.createObject_Single = function (s3ObjectBuilder, config) {
         return __awaiter(this, void 0, void 0, function () {
-            var command, _a;
+            var objectConfig, id, command, _a;
             var _b;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
+                        objectConfig = config.objectCreation;
+                        id = this.getS3ObjectId(s3ObjectBuilder, objectConfig);
                         _a = client_s3_1.PutObjectCommand.bind;
                         _b = {
                             Bucket: this.bucketName,
-                            Key: s3ObjectBuilder.Id
+                            Key: id
                         };
                         return [4 /*yield*/, s3ObjectBuilder.Body];
                     case 1:
@@ -167,23 +179,26 @@ var S3BucketInternal = /** @class */ (function () {
                         return [4 /*yield*/, this.s3.send(command)];
                     case 2:
                         _c.sent();
-                        return [2 /*return*/, new s3Object_1.S3Object(s3ObjectBuilder.Metadata, this)];
+                        return [2 /*return*/, new s3Object_1.S3Object(s3ObjectBuilder.Metadata, this, config)];
                 }
             });
         });
     };
-    S3BucketInternal.prototype.createObject_Multipart = function (s3ObjectBuilder) {
+    S3BucketInternal.prototype.createObject_Multipart = function (s3ObjectBuilder, config) {
         return __awaiter(this, void 0, void 0, function () {
-            var createMultipartUploadCommand, createMultipartUploadResponse, uploadId, partSize, partsCount, _a, _b, promises, i, start, end, _c, _d, _e, partBuffer, uploadPartCommand, uploadPartResponses, completedParts, completeMultipartUploadCommand;
+            var objectConfig, id, partSize, createMultipartUploadCommand, createMultipartUploadResponse, uploadId, partsCount, _a, _b, promises, i, start, end, _c, _d, _e, partBuffer, uploadPartCommand, uploadPartResponses, completedParts, completeMultipartUploadCommand;
             return __generator(this, function (_f) {
                 switch (_f.label) {
                     case 0:
+                        objectConfig = config.objectCreation;
+                        id = this.getS3ObjectId(s3ObjectBuilder, objectConfig);
+                        partSize = objectConfig.multiPartUpload.maxPartSize;
                         // Multipart upload
                         console.log("Using multipart upload");
-                        console.log(s3ObjectBuilder.Id);
+                        console.log(id);
                         createMultipartUploadCommand = new client_s3_1.CreateMultipartUploadCommand({
                             Bucket: this.bucketName,
-                            Key: s3ObjectBuilder.Id,
+                            Key: id,
                             Metadata: s3ObjectBuilder.Metadata.toRecord()
                         });
                         return [4 /*yield*/, this.s3.send(createMultipartUploadCommand)];
@@ -192,13 +207,11 @@ var S3BucketInternal = /** @class */ (function () {
                         uploadId = createMultipartUploadResponse.UploadId;
                         if (!uploadId)
                             throw new Error("Failed to initialize multipart upload");
-                        partSize = (0, config_1.getConfig)().multiPartUpload.maxPartSize;
                         _b = (_a = Math).ceil;
                         return [4 /*yield*/, s3ObjectBuilder.DataSize];
                     case 2:
                         partsCount = _b.apply(_a, [(_f.sent()) / partSize]);
                         console.log("Uploading ".concat(partsCount, " parts..."));
-                        console.log(s3ObjectBuilder.Id);
                         promises = new Array(partsCount);
                         i = 0;
                         _f.label = 3;
@@ -216,7 +229,7 @@ var S3BucketInternal = /** @class */ (function () {
                         partBuffer = (_f.sent()).slice(start, end);
                         uploadPartCommand = new client_s3_1.UploadPartCommand({
                             Bucket: this.bucketName,
-                            Key: s3ObjectBuilder.Id,
+                            Key: id,
                             UploadId: uploadId,
                             PartNumber: i + 1,
                             Body: partBuffer
@@ -236,10 +249,10 @@ var S3BucketInternal = /** @class */ (function () {
                             };
                         });
                         console.log("Completing multipart upload...");
-                        console.log(s3ObjectBuilder.Id);
+                        console.log(id);
                         completeMultipartUploadCommand = new client_s3_1.CompleteMultipartUploadCommand({
                             Bucket: this.bucketName,
-                            Key: s3ObjectBuilder.Id,
+                            Key: id,
                             UploadId: uploadId,
                             MultipartUpload: {
                                 Parts: completedParts
@@ -249,7 +262,7 @@ var S3BucketInternal = /** @class */ (function () {
                     case 9:
                         _f.sent();
                         console.log("Multipart upload complete");
-                        return [2 /*return*/, new s3Object_1.S3Object(s3ObjectBuilder.Metadata, this)];
+                        return [2 /*return*/, new s3Object_1.S3Object(s3ObjectBuilder.Metadata, this, config)];
                 }
             });
         });
@@ -276,10 +289,10 @@ var S3BucketInternal = /** @class */ (function () {
             });
         });
     };
-    S3BucketInternal.prototype.getObject = function (key, requireBody) {
+    S3BucketInternal.prototype.getObject = function (key, config, requireBody) {
         if (requireBody === void 0) { requireBody = false; }
         return __awaiter(this, void 0, void 0, function () {
-            var command, response;
+            var command, response, metadata;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -287,9 +300,10 @@ var S3BucketInternal = /** @class */ (function () {
                         return [4 /*yield*/, this.s3.send(command)];
                     case 1:
                         response = _a.sent();
+                        metadata = new metadata_1.Metadata(response.Metadata, key);
                         return [2 /*return*/, requireBody ?
-                                new s3Object_1.S3Object(new metadata_1.Metadata(response.Metadata), this, response.Body) :
-                                new s3Object_1.S3Object(new metadata_1.Metadata(response.Metadata), this)];
+                                new s3Object_1.S3Object(metadata, this, config, response.Body) :
+                                new s3Object_1.S3Object(metadata, this, config)];
                 }
             });
         });

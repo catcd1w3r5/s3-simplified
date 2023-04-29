@@ -1,7 +1,7 @@
 import { IMetadata } from "../../interfaces";
 export declare class Metadata implements IMetadata {
     private metadata;
-    constructor(metadata?: Record<string, string>);
+    constructor(metadata?: Record<string, string>, identifier?: string);
     get Keys(): string[];
     get Values(): string[];
     get Pairs(): [string, string][];

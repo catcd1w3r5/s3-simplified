@@ -1,1 +1,1 @@
-export * from './configTemplate';
+export * from './defaultConfig';

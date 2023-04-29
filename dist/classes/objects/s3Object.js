@@ -37,13 +37,25 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.S3Object = void 0;
-var metadata_1 = require("../misc/metadata");
 var S3Object = /** @class */ (function () {
-    function S3Object(metadata, bucketSource, body) {
-        if (metadata === void 0) { metadata = new metadata_1.Metadata(); }
+    function S3Object(metadata, bucketSource, config, body) {
         this.metadata = metadata;
         this.bucketSource = bucketSource;
+        this.config = config;
         this.body = body;
+        var editableMetadata = this.metadata.asRecord();
+        var type = this.Type;
+        if (this.Extension !== undefined)
+            return;
+        if (type !== undefined) {
+            editableMetadata["file-type"] = type.split("/")[1];
+            return;
+        }
+        //guess from filename
+        var filename = this.key;
+        var extension = filename.split(".")[1];
+        if (extension !== undefined)
+            editableMetadata["file-type"] = extension;
     }
     Object.defineProperty(S3Object.prototype, "Body", {
         get: function () {
@@ -78,21 +90,21 @@ var S3Object = /** @class */ (function () {
     });
     Object.defineProperty(S3Object.prototype, "Type", {
         get: function () {
-            return this.metadata.get("Content-Type");
+            return this.metadata.get("content-type");
         },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(S3Object.prototype, "Extension", {
         get: function () {
-            return this.metadata.get("File-Type");
+            return this.metadata.get("file-type");
         },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(S3Object.prototype, "UUID", {
         get: function () {
-            var uuid = this.metadata.get("Content-Disposition");
+            var uuid = this.metadata.get("content-disposition");
             if (uuid)
                 return uuid;
             throw new Error("UUID not found");
@@ -120,7 +132,7 @@ var S3Object = /** @class */ (function () {
                         if (!(_b.sent())) return [3 /*break*/, 2];
                         _a = this.bucketSource.generatePublicUrl(this.key);
                         return [3 /*break*/, 4];
-                    case 2: return [4 /*yield*/, this.bucketSource.generateSignedUrl(this.key)];
+                    case 2: return [4 /*yield*/, this.bucketSource.generateSignedUrl(this.key, this.config.signedUrl)];
                     case 3:
                         _a = _b.sent();
                         _b.label = 4;

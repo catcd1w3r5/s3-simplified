@@ -41,7 +41,6 @@ var metadata_1 = require("../misc/metadata");
 var generateUUID_1 = require("../../utils/generateUUID");
 var fileTypeParser_1 = require("../../utils/fileTypeParser");
 var convertToBuffer_1 = require("../../utils/convertToBuffer");
-var config_1 = require("../../utils/config");
 var S3ObjectBuilder = /** @class */ (function () {
     function S3ObjectBuilder(data, metadata) {
         if (metadata === void 0) { metadata = new metadata_1.Metadata(); }
@@ -120,23 +119,6 @@ var S3ObjectBuilder = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(S3ObjectBuilder.prototype, "Id", {
-        get: function () {
-            var id = this.metadata.get("identifier");
-            if (id)
-                return id;
-            return this.generateIdentifier();
-        },
-        enumerable: false,
-        configurable: true
-    });
-    S3ObjectBuilder.prototype.generateIdentifier = function () {
-        var uuid = this.UUID;
-        var ext = this.Extension; // This will generate the extension if it doesn't exist, so we call it even if we don't need it.
-        var newId = ((0, config_1.getConfig)().appendFileTypeToKey) ? uuid + "." + ext : uuid;
-        this.metadata.set("identifier", newId);
-        return newId;
-    };
     S3ObjectBuilder.prototype.AsBuffer = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {

@@ -37,82 +37,39 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.S3Lib = void 0;
-var client_s3_1 = require("@aws-sdk/client-s3");
-var s3Bucket_1 = require("../buckets/s3Bucket");
 var errors_1 = require("./errors");
-var config_1 = require("../../utils/config");
-var S3Lib = exports.S3Lib = /** @class */ (function () {
-    function S3Lib(region, accessKeyId, secretAccessKey) {
-        if (region === void 0) { region = (0, config_1.getConfig)().region; }
-        if (accessKeyId === void 0) { accessKeyId = (0, config_1.getConfig)().accessKey.id; }
-        if (secretAccessKey === void 0) { secretAccessKey = (0, config_1.getConfig)().accessKey.secret; }
-        this.s3 = new client_s3_1.S3({ region: region, credentials: { accessKeyId: accessKeyId, secretAccessKey: secretAccessKey } });
-        this.region = region;
+var s3libInternal_1 = require("./s3libInternal");
+var S3Lib = /** @class */ (function () {
+    function S3Lib(config) {
+        this.internal = new s3libInternal_1.S3libInternal(config);
     }
     S3Lib.prototype.createBucket = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
-            var command;
             return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        console.log("Creating bucket: " + bucketName);
-                        //Naming rules
-                        // https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
-                        //Define Rules (rules below have more restrictions than the ones listed in the link above e.g. periods are allowed but not recommended for optimal performance, so they're simply not allowed here)
-                        if (!(bucketName.length >= 3 && bucketName.length <= 63))
-                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must be between 3 and 63 characters long"));
-                        if (!(/^[a-z0-9]/.test(bucketName)))
-                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must start with a letter or number"));
-                        if (!(/[a-z0-9]$/.test(bucketName)))
-                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must end with a letter or number"));
-                        if (bucketName.includes('.') || bucketName.includes('_'))
-                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not contain \".\" or \"_\""));
-                        if (bucketName !== bucketName.toLowerCase())
-                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not contain any uppercase characters"));
-                        if (bucketName.endsWith('-s3alias') || bucketName.endsWith('--ol-s3'))
-                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not end with be -s3alias or --ol-s3"));
-                        if (bucketName.startsWith('xn--'))
-                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not start with be xn--"));
-                        command = new client_s3_1.CreateBucketCommand({ Bucket: bucketName });
-                        return [4 /*yield*/, this.s3.send(command)];
-                    case 1:
-                        _a.sent();
-                        return [2 /*return*/, this.getBucketInternal(bucketName)];
-                }
+                console.log("Creating bucket: " + bucketName);
+                this.validateBucketName(bucketName);
+                return [2 /*return*/, this.internal.createBucket(bucketName)];
             });
         });
     };
     S3Lib.prototype.deleteBucket = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
-            var command;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.containsBucket(bucketName)];
+                    case 0: return [4 /*yield*/, this.assetBucketOwnership(bucketName)];
                     case 1:
-                        if (!(_a.sent()))
-                            throw new errors_1.MissingBucket(bucketName);
-                        command = new client_s3_1.DeleteBucketCommand({ Bucket: bucketName });
-                        return [4 /*yield*/, this.s3.send(command)];
-                    case 2:
                         _a.sent();
-                        return [2 /*return*/];
+                        return [2 /*return*/, this.internal.deleteBucket(bucketName)];
                 }
             });
         });
     };
     S3Lib.prototype.listBuckets = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var command, response;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        command = new client_s3_1.ListBucketsCommand({});
-                        return [4 /*yield*/, this.s3.send(command)];
-                    case 1:
-                        response = _a.sent();
-                        return [2 /*return*/, response.Buckets ?
-                                response.Buckets.map(function (bucket) { return bucket.Name || '[unknown]'; })
-                                : []];
+                    case 0: return [4 /*yield*/, this.internal.listBuckets()];
+                    case 1: return [2 /*return*/, _a.sent()];
                 }
             });
         });
@@ -121,54 +78,77 @@ var S3Lib = exports.S3Lib = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.containsBucket(bucketName)];
+                    case 0: return [4 /*yield*/, this.assetBucketOwnership(bucketName)];
                     case 1:
-                        if (!(_a.sent()))
-                            throw new errors_1.MissingBucket(bucketName);
-                        return [2 /*return*/, this.getBucketInternal(bucketName)];
+                        _a.sent();
+                        return [2 /*return*/, this.internal.getBucket(bucketName)];
                 }
             });
         });
     };
     S3Lib.prototype.getOrCreateBucket = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
+            var bucketStatus;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.containsBucket(bucketName)];
+                    case 0: return [4 /*yield*/, this.getBucketStatus(bucketName)];
                     case 1:
-                        if (_a.sent())
-                            return [2 /*return*/, this.getBucketInternal(bucketName)];
-                        return [2 /*return*/, this.createBucket(bucketName)];
+                        bucketStatus = _a.sent();
+                        switch (bucketStatus) {
+                            case 'owned':
+                                return [2 /*return*/, this.internal.getBucket(bucketName)];
+                            case 'not owned':
+                                throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " is owned by another user"));
+                            case 'not found':
+                                return [2 /*return*/, this.createBucket(bucketName)];
+                        }
+                        return [2 /*return*/];
                 }
             });
         });
     };
-    S3Lib.prototype.containsBucket = function (bucketName) {
+    S3Lib.prototype.getBucketStatus = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
-            var command, error_1;
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this.internal.getBucketStatus(bucketName)];
+            });
+        });
+    };
+    S3Lib.prototype.assetBucketOwnership = function (bucketName) {
+        return __awaiter(this, void 0, void 0, function () {
+            var bucketStatus;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        _a.trys.push([0, 2, , 3]);
-                        command = new client_s3_1.HeadBucketCommand({ Bucket: bucketName });
-                        return [4 /*yield*/, this.s3.send(command)];
+                    case 0: return [4 /*yield*/, this.getBucketStatus(bucketName)];
                     case 1:
-                        _a.sent();
-                        return [2 /*return*/, true];
-                    case 2:
-                        error_1 = _a.sent();
-                        // @ts-ignore
-                        if (error_1.name === undefined || error_1.name !== "NoSuchBucket")
-                            throw error_1;
-                        return [2 /*return*/, false];
-                    case 3: return [2 /*return*/];
+                        bucketStatus = _a.sent();
+                        if (bucketStatus !== 'owned') {
+                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " is not accessible by the user"));
+                        }
+                        return [2 /*return*/];
                 }
             });
         });
     };
-    S3Lib.prototype.getBucketInternal = function (bucketName) {
-        return new s3Bucket_1.S3Bucket(this, bucketName);
+    S3Lib.prototype.validateBucketName = function (bucketName) {
+        //Naming rules
+        // https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+        //Define Rules (rules below have more restrictions than the ones listed in the link above e.g. periods are allowed but not recommended for optimal performance, so they're simply not allowed here)
+        if (!(bucketName.length >= 3 && bucketName.length <= 63))
+            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must be between 3 and 63 characters long"));
+        if (!(/^[a-z0-9]/.test(bucketName)))
+            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must start with a letter or number"));
+        if (!(/[a-z0-9]$/.test(bucketName)))
+            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must end with a letter or number"));
+        if (bucketName.includes('.') || bucketName.includes('_'))
+            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not contain \".\" or \"_\""));
+        if (bucketName !== bucketName.toLowerCase())
+            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not contain any uppercase characters"));
+        if (bucketName.endsWith('-s3alias') || bucketName.endsWith('--ol-s3'))
+            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not end with be -s3alias or --ol-s3"));
+        if (bucketName.startsWith('xn--'))
+            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " must not start with be xn--"));
     };
-    S3Lib.Default = new S3Lib();
     return S3Lib;
 }());
+exports.S3Lib = S3Lib;

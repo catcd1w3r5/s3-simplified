@@ -2,9 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Metadata = void 0;
 var Metadata = /** @class */ (function () {
-    function Metadata(metadata) {
+    function Metadata(metadata, identifier) {
         if (metadata === void 0) { metadata = {}; }
         this.metadata = metadata;
+        if (identifier)
+            this.metadata["identifier"] = identifier;
     }
     Object.defineProperty(Metadata.prototype, "Keys", {
         get: function () {

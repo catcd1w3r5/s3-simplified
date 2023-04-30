@@ -1,4 +1,5 @@
 import {Regions} from "../types";
+import {DeepPartial} from "../utils/DeepPartial";
 
 /**
  * The keys for the aws account
@@ -79,7 +80,6 @@ export interface ObjectCreationConfig {
     useHashAsKey: boolean,
 
 
-
     /**
      * The settings for multipart upload
      */
@@ -114,5 +114,6 @@ export interface Config extends RequiredConfig, OptionalConfig {
 /**
  * The configuration for the s3 library
  */
-export interface UserConfig extends RequiredConfig, CredentialsConfig, Partial<OptionalConfig> {
+export interface UserConfig extends RequiredConfig, CredentialsConfig, DeepPartial<OptionalConfig> {
 }
+

@@ -71,6 +71,13 @@ export interface ObjectCreationConfig {
      */
     appendFileTypeToKey: boolean,
 
+    /**
+     * Whether to use the hash of the file as the key
+     * This is useful if you want to prevent duplicate files from being uploaded
+     * @note This would only affect new uploads, not existing ones
+     */
+    useHashAsKey: boolean,
+
 
 
     /**

@@ -13,5 +13,6 @@ export const defaultConfig: OptionalConfig = {
             enabledThreshold: 100 * MB,
         },
         appendFileTypeToKey: true,
+        useHashAsKey: false
     }
 }

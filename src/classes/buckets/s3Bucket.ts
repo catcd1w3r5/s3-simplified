@@ -19,6 +19,10 @@ export class S3Bucket implements S3BucketService {
         this.internal = new S3BucketInternal(lib.s3, this.config, bucketName);
     }
 
+    public async getObjectId(s3Object: S3ObjectBuilder): Promise<string> {
+        return  await this.internal.getS3ObjectId(s3Object, this.config.objectCreation);
+    }
+
     public async createObject(s3Object: S3ObjectBuilder): Promise<IS3Object> {
         const s3ObjectId = await this.internal.getS3ObjectId(s3Object, this.config.objectCreation);
         await this.assertNoConflicts(s3ObjectId);

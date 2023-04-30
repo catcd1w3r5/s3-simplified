@@ -93,7 +93,6 @@ export class S3BucketInternal {
     }
 
     public async generateSignedUrl(key: string, signedUrlConfig: SignedUrlConfig): Promise<string> {
-        console.log("generating Signed Url");
         return getSignedUrl(this.s3, new GetObjectCommand({
             Bucket: this.bucketName,
             Key: key
@@ -107,7 +106,7 @@ export class S3BucketInternal {
     public async getS3ObjectId(s3ObjectBuilder: S3ObjectBuilder, objectConfig: ObjectCreationConfig): Promise<string> {
         const metadata = s3ObjectBuilder.Metadata.asRecord();
         if (metadata["identifier"]) return metadata["identifier"];
-        const uuid = await s3ObjectBuilder.UUID;
+        const uuid = await s3ObjectBuilder.getUUID(objectConfig.useHashAsKey);
         const ext = s3ObjectBuilder.Extension; // This will generate the extension if it doesn't exist, so we call it even if we don't need it.
         const id = (objectConfig.appendFileTypeToKey) ? uuid + "." + ext : uuid;
         metadata["identifier"] = id;
@@ -133,9 +132,6 @@ export class S3BucketInternal {
         const id = await this.getS3ObjectId(s3ObjectBuilder, objectConfig);
         const partSize = objectConfig.multiPartUpload.maxPartSize
         // Multipart upload
-        console.log("Using multipart upload")
-
-        console.log(id);
         const createMultipartUploadCommand = new CreateMultipartUploadCommand({
             Bucket: this.bucketName,
             Key: id,
@@ -147,12 +143,9 @@ export class S3BucketInternal {
 
         const partsCount = Math.ceil(await s3ObjectBuilder.DataSize / partSize);
 
-        console.log(`Uploading ${partsCount} parts...`)
-
         //Consolidate all the promises into one array and await them all at once rather than one by one
         const promises = new Array<Promise<UploadPartCommandOutput>>(partsCount);
         for (let i = 0; i < partsCount; i++) {
-            console.log(`Uploading part ${i + 1} of ${partsCount}`)
             const start = i * partSize;
             const end = Math.min(start + partSize, await s3ObjectBuilder.DataSize);
             const partBuffer = (await s3ObjectBuilder.AsBuffer()).slice(start, end);
@@ -173,9 +166,6 @@ export class S3BucketInternal {
                 PartNumber: index + 1
             }
         });
-        console.log("Completing multipart upload...")
-
-        console.log(id);
         const completeMultipartUploadCommand = new CompleteMultipartUploadCommand({
             Bucket: this.bucketName,
             Key: id,
@@ -185,7 +175,6 @@ export class S3BucketInternal {
             }
         });
         await this.s3.send(completeMultipartUploadCommand);
-        console.log("Multipart upload complete");
         return new S3Object(s3ObjectBuilder.Metadata, this, config);
     }
 

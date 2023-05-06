@@ -5,16 +5,17 @@ export type DeepPartial<T> = T extends object ? {
 /**
  *
  * remove all properties with undefined or null values from nested objects
- * @param obj
+ * @param defaultValue
+ * @param customValue
  */
-export function prune(obj: any): any {
-    if (obj === undefined) return undefined;
-    if (obj === null) return undefined;
-    if (typeof obj !== "object") return obj;
-    if (Array.isArray(obj)) return obj.map(prune);
+export function pruneAndMerge(defaultValue: any, customValue: any): any {
+    if (defaultValue === undefined || defaultValue === null) return undefined;
+    if (customValue === undefined ||customValue === null) return defaultValue;
+    if (typeof defaultValue !== "object") return customValue;
+    if (Array.isArray(defaultValue)) return defaultValue.map(pruneAndMerge);
     const result: Record<string, any> = {};
-    for (const key of Object.keys(obj)) {
-        const value = prune(obj[key]);
+    for (const key of Object.keys(defaultValue)) {
+        const value = pruneAndMerge(defaultValue[key], customValue[key]);
         if (value !== undefined) result[key] = value;
     }
     return result;

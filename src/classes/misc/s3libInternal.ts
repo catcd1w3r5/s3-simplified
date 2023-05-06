@@ -4,7 +4,7 @@ import {S3BucketService} from "../../interfaces";
 import {Config, UserConfig} from "../../interfaces/config";
 import {defaultConfig} from "../../utils";
 import {bucketStatus} from "../../types";
-import {prune} from "../../utils/DeepPartial";
+import {pruneAndMerge} from "../../utils/DeepPartial";
 
 export class S3libInternal {
     public readonly s3: S3;
@@ -14,14 +14,10 @@ export class S3libInternal {
         const {region, accessKey, ...others} = config;
         const credentials = {accessKeyId: accessKey.id, secretAccessKey: accessKey.secret};
         //strip off the accessKey from the config to prevent it from being logged
-        //combine the rest of the config with the default config
-        this.config = {...defaultConfig, region};
-        //add the others to the config if they are not undefined
-        Object.assign(this.config, prune(others));
+        this.config = pruneAndMerge(defaultConfig, others);
+        this.config.region = region;
         this.s3 = new S3({region, credentials});
     }
-
-
 
     public async createBucket(bucketName: string): Promise<S3BucketService> {
         const command = new CreateBucketCommand({Bucket: bucketName});

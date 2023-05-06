@@ -1,13 +1,12 @@
 import {CreateBucketCommand, DeleteBucketCommand, HeadBucketCommand, ListBucketsCommand, S3} from "@aws-sdk/client-s3";
-import {S3Bucket} from "../buckets/s3Bucket";
-import {S3BucketService} from "../../interfaces";
 import {Config, UserConfig} from "../../interfaces/config";
 import {defaultConfig} from "../../utils";
 import {bucketStatus} from "../../types";
 import {pruneAndMerge} from "../../utils/DeepPartial";
+import {S3BucketInternal} from "../buckets/s3BucketInternal";
 
 export class S3libInternal {
-    public readonly s3: S3;
+    protected readonly s3: S3;
     public readonly config: Config
 
     constructor(config: UserConfig) {
@@ -19,10 +18,10 @@ export class S3libInternal {
         this.s3 = new S3({region, credentials});
     }
 
-    public async createBucket(bucketName: string): Promise<S3BucketService> {
+    public async createBucket(bucketName: string): Promise<S3BucketInternal> {
         const command = new CreateBucketCommand({Bucket: bucketName});
         await this.s3.send(command);
-        return new S3Bucket(this, bucketName);
+        return this.getBucket(bucketName)
     }
 
     public async deleteBucket(bucketName: string): Promise<void> {
@@ -38,8 +37,8 @@ export class S3libInternal {
             : [];
     }
 
-    public async getBucket(bucketName: string): Promise<S3BucketService> {
-        return new S3Bucket(this, bucketName);
+    public async getBucket(bucketName: string): Promise<S3BucketInternal> {
+        return new S3BucketInternal(this.s3, this.config.region,bucketName);
     }
 
     public async getBucketStatus(bucketName: string): Promise<bucketStatus> {

@@ -20,6 +20,7 @@ import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
 import {S3ObjectBuilder} from "../objects/s3ObjectBuilder";
 import {Readable} from "stream";
 import {Config, ObjectCreationConfig, SignedUrlConfig} from "../../interfaces/config";
+import {Regions} from "../../types";
 
 /**
  * An unsafe version of S3 bucket with no validation.
@@ -34,11 +35,11 @@ export class S3BucketInternal {
     /**
      * @internal
      * @param s3 The s3 client to use
-     * @param config
+     * @param region
      * @param bucketName
      */
-    public constructor(private readonly s3:S3, config: Config, bucketName: string) {
-        this.bucketUrl = `https://${bucketName}.s3.${config.region}.amazonaws.com`;
+    public constructor(private readonly s3:S3, region: Regions, bucketName: string) {
+        this.bucketUrl = `https://${bucketName}.s3.${region}.amazonaws.com`;
         this.bucketName = bucketName;
     }
 

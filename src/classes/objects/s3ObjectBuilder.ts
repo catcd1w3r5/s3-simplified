@@ -61,7 +61,7 @@ export class S3ObjectBuilder {
     private async generateUUID(config: HashFunctionConfig): Promise<string> {
         const buffer = config.requireBuffer ? await this.data.getBuffer() : undefined;
         const metadata = config.requireMetadata ? this.metadata.toRecord() : undefined;
-        const newUuid = config.function(buffer, metadata);
+        const newUuid = await config.function(buffer, metadata);
         this.metadata.set("content-disposition", newUuid);
         return newUuid;
     }

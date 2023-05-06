@@ -64,6 +64,30 @@ export interface CredentialsConfig {
  * The required configuration for the s3 library
  * @note This configuration only affects new uploads, not existing ones
  */
+export interface HashFunctionConfig {
+    /**
+     * The hash function to use
+     * @note This would only affect new uploads, not existing ones
+     */
+    function: IHashFunction,
+
+    /**
+     * If the hash function requires a buffer
+     * @note this should slightly speed up the hashing process
+     */
+    requireBuffer: boolean,
+
+    /**
+     * If the hash function requires the metadata
+     * @note this should slightly speed up the hashing process
+     */
+    requireMetadata: boolean,
+}
+
+/**
+ * The required configuration for the s3 library
+ * @note This configuration only affects new uploads, not existing ones
+ */
 export interface ObjectCreationConfig {
 
     /**
@@ -78,7 +102,7 @@ export interface ObjectCreationConfig {
      * The hash function to use
      * @note This would only affect new uploads, not existing ones
      */
-    hashFunction: IHashFunction,
+    hash: HashFunctionConfig,
 
 
     /**

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import {S3ObjectBuilder} from "../classes";
+import {IMetadata} from "../interfaces";
 
 
-export const generateUUID = (obj:S3ObjectBuilder): string => {
+export const generateUUID = (buffer: Buffer | undefined, metadata: Record<string, string>|undefined): string => {
     return crypto.randomBytes(16).toString('hex');
 }

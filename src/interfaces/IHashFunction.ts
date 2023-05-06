@@ -1,3 +1,3 @@
-import {S3ObjectBuilder} from "../classes";
+import {IMetadata} from "./IMetadata";
 
-export type IHashFunction = (obj: S3ObjectBuilder) => string;
+export type IHashFunction = (buffer: Buffer | undefined, metadata: Record<string, string>|undefined) => string;

@@ -14,6 +14,10 @@ export const defaultConfig: OptionalConfig = {
             enabledThreshold: 100 * MB,
         },
         appendFileTypeToKey: true,
-        hashFunction: generateUUID,
+        hash: {
+            function :generateUUID,
+            requireBuffer: true,
+            requireMetadata: true,
+        }
     }
 }

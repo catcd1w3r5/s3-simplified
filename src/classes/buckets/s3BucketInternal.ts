@@ -20,6 +20,7 @@ import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
 import {S3ObjectBuilder} from "../objects/s3ObjectBuilder";
 import {Readable} from "stream";
 import {Config, ObjectCreationConfig, SignedUrlConfig} from "../../interfaces/config";
+import {Regions} from "../../types";
 
 /**
  * An unsafe version of S3 bucket with no validation.
@@ -34,11 +35,11 @@ export class S3BucketInternal {
     /**
      * @internal
      * @param s3 The s3 client to use
-     * @param config
+     * @param region
      * @param bucketName
      */
-    public constructor(private readonly s3:S3, config: Config, bucketName: string) {
-        this.bucketUrl = `https://${bucketName}.s3.${config.region}.amazonaws.com`;
+    public constructor(private readonly s3:S3, region: Regions, bucketName: string) {
+        this.bucketUrl = `https://${bucketName}.s3.${region}.amazonaws.com`;
         this.bucketName = bucketName;
     }
 
@@ -93,7 +94,6 @@ export class S3BucketInternal {
     }
 
     public async generateSignedUrl(key: string, signedUrlConfig: SignedUrlConfig): Promise<string> {
-        console.log("generating Signed Url");
         return getSignedUrl(this.s3, new GetObjectCommand({
             Bucket: this.bucketName,
             Key: key
@@ -104,10 +104,10 @@ export class S3BucketInternal {
         return `${this.bucketUrl}/${key}`;
     }
 
-    public getS3ObjectId(s3ObjectBuilder: S3ObjectBuilder, objectConfig: ObjectCreationConfig): string {
+    public async getS3ObjectId(s3ObjectBuilder: S3ObjectBuilder, objectConfig: ObjectCreationConfig): Promise<string> {
         const metadata = s3ObjectBuilder.Metadata.asRecord();
         if (metadata["identifier"]) return metadata["identifier"];
-        const uuid = s3ObjectBuilder.UUID;
+        const uuid = await s3ObjectBuilder.getUUID(objectConfig);
         const ext = s3ObjectBuilder.Extension; // This will generate the extension if it doesn't exist, so we call it even if we don't need it.
         const id = (objectConfig.appendFileTypeToKey) ? uuid + "." + ext : uuid;
         metadata["identifier"] = id;
@@ -116,7 +116,7 @@ export class S3BucketInternal {
 
     public async createObject_Single(s3ObjectBuilder: S3ObjectBuilder, config: Config): Promise<IS3Object> {
         const objectConfig = config.objectCreation;
-        const id = this.getS3ObjectId(s3ObjectBuilder, objectConfig);
+        const id = await this.getS3ObjectId(s3ObjectBuilder, objectConfig);
 
         const command = new PutObjectCommand({
             Bucket: this.bucketName,
@@ -130,12 +130,9 @@ export class S3BucketInternal {
 
     public async createObject_Multipart(s3ObjectBuilder: S3ObjectBuilder, config: Config): Promise<IS3Object> {
         const objectConfig = config.objectCreation;
-        const id = this.getS3ObjectId(s3ObjectBuilder, objectConfig);
+        const id = await this.getS3ObjectId(s3ObjectBuilder, objectConfig);
         const partSize = objectConfig.multiPartUpload.maxPartSize
         // Multipart upload
-        console.log("Using multipart upload")
-
-        console.log(id);
         const createMultipartUploadCommand = new CreateMultipartUploadCommand({
             Bucket: this.bucketName,
             Key: id,
@@ -147,12 +144,9 @@ export class S3BucketInternal {
 
         const partsCount = Math.ceil(await s3ObjectBuilder.DataSize / partSize);
 
-        console.log(`Uploading ${partsCount} parts...`)
-
         //Consolidate all the promises into one array and await them all at once rather than one by one
         const promises = new Array<Promise<UploadPartCommandOutput>>(partsCount);
         for (let i = 0; i < partsCount; i++) {
-            console.log(`Uploading part ${i + 1} of ${partsCount}`)
             const start = i * partSize;
             const end = Math.min(start + partSize, await s3ObjectBuilder.DataSize);
             const partBuffer = (await s3ObjectBuilder.AsBuffer()).slice(start, end);
@@ -173,9 +167,6 @@ export class S3BucketInternal {
                 PartNumber: index + 1
             }
         });
-        console.log("Completing multipart upload...")
-
-        console.log(id);
         const completeMultipartUploadCommand = new CompleteMultipartUploadCommand({
             Bucket: this.bucketName,
             Key: id,
@@ -185,7 +176,6 @@ export class S3BucketInternal {
             }
         });
         await this.s3.send(completeMultipartUploadCommand);
-        console.log("Multipart upload complete");
         return new S3Object(s3ObjectBuilder.Metadata, this, config);
     }
 

@@ -1,5 +1,6 @@
 import {MB, Minute} from "./constants";
 import {OptionalConfig} from "../interfaces/config";
+import {generateUUID} from "./generateUUID";
 
 export const defaultConfig: OptionalConfig = {
 
@@ -9,9 +10,14 @@ export const defaultConfig: OptionalConfig = {
 
     objectCreation: {
         multiPartUpload: {
-            maxPartSize: 5 * MB,
-            enabledThreshold: 5 * MB,
+            maxPartSize: 100 * MB,
+            enabledThreshold: 100 * MB,
         },
         appendFileTypeToKey: true,
+        hash: {
+            function :generateUUID,
+            requireBuffer: true,
+            requireMetadata: true,
+        }
     }
 }

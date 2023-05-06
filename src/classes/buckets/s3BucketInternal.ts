@@ -106,7 +106,7 @@ export class S3BucketInternal {
     public async getS3ObjectId(s3ObjectBuilder: S3ObjectBuilder, objectConfig: ObjectCreationConfig): Promise<string> {
         const metadata = s3ObjectBuilder.Metadata.asRecord();
         if (metadata["identifier"]) return metadata["identifier"];
-        const uuid = await s3ObjectBuilder.getUUID(objectConfig.useHashAsKey);
+        const uuid = await s3ObjectBuilder.getUUID(objectConfig);
         const ext = s3ObjectBuilder.Extension; // This will generate the extension if it doesn't exist, so we call it even if we don't need it.
         const id = (objectConfig.appendFileTypeToKey) ? uuid + "." + ext : uuid;
         metadata["identifier"] = id;

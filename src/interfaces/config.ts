@@ -1,5 +1,6 @@
 import {Regions} from "../types";
 import {DeepPartial} from "../utils/DeepPartial";
+import {IHashFunction} from "./IHashFunction";
 
 /**
  * The keys for the aws account
@@ -61,6 +62,7 @@ export interface CredentialsConfig {
 
 /**
  * The required configuration for the s3 library
+ * @note This configuration only affects new uploads, not existing ones
  */
 export interface ObjectCreationConfig {
 
@@ -73,11 +75,10 @@ export interface ObjectCreationConfig {
     appendFileTypeToKey: boolean,
 
     /**
-     * Whether to use the hash of the file as the key
-     * This is useful if you want to prevent duplicate files from being uploaded
+     * The hash function to use
      * @note This would only affect new uploads, not existing ones
      */
-    useHashAsKey: boolean,
+    hashFunction: IHashFunction,
 
 
     /**

@@ -1,10 +1,10 @@
 import {Readable} from "stream";
 import {Metadata} from "../misc/metadata";
-import {generateHash} from "../../utils/generateHash";
 import {IMetadata} from "../../interfaces";
 import {FileTypeParser} from "../../utils/fileTypeParser";
 import {ConvertToBuffer} from "../../utils/convertToBuffer";
-import {generateUUID} from "../../utils/generateUUID";
+import {IHashFunction} from "../../interfaces/IHashFunction";
+import {ObjectCreationConfig} from "../../interfaces/config";
 
 type AcceptedDataTypes = Readable | ReadableStream | Blob | string | Uint8Array | Buffer
 
@@ -52,11 +52,15 @@ export class S3ObjectBuilder {
         return fileType;
     }
 
-    public async getUUID(useHashAsKey: boolean): Promise<string> {
+    public async getUUID(useHashAsKey: ObjectCreationConfig): Promise<string> {
         const uuid = this.metadata.get("content-disposition");
         if (uuid) return new Promise<string>(resolve => resolve(uuid));
-        const buffer = await this.data.getBuffer();
-        const newUuid = useHashAsKey? generateHash(buffer, this.metadata): generateUUID();
+        return this.generateUUID(useHashAsKey.hashFunction);
+    }
+
+
+    private async generateUUID(fn:IHashFunction) :Promise<string>{
+        const newUuid = fn(this);
         this.metadata.set("content-disposition", newUuid);
         return newUuid;
     }

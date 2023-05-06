@@ -16,12 +16,12 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExistingObject = exports.MissingObject = exports.InvalidBucketName = exports.MissingBucket = void 0;
-var InvalidError = /** @class */ (function (_super) {
-    __extends(InvalidError, _super);
-    function InvalidError() {
+var S3Error = /** @class */ (function (_super) {
+    __extends(S3Error, _super);
+    function S3Error() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    return InvalidError;
+    return S3Error;
 }(Error));
 var MissingBucket = /** @class */ (function (_super) {
     __extends(MissingBucket, _super);
@@ -32,7 +32,7 @@ var MissingBucket = /** @class */ (function (_super) {
         return _this;
     }
     return MissingBucket;
-}(InvalidError));
+}(S3Error));
 exports.MissingBucket = MissingBucket;
 var InvalidBucketName = /** @class */ (function (_super) {
     __extends(InvalidBucketName, _super);
@@ -44,7 +44,7 @@ var InvalidBucketName = /** @class */ (function (_super) {
         return _this;
     }
     return InvalidBucketName;
-}(InvalidError));
+}(S3Error));
 exports.InvalidBucketName = InvalidBucketName;
 var MissingObject = /** @class */ (function (_super) {
     __extends(MissingObject, _super);
@@ -55,7 +55,7 @@ var MissingObject = /** @class */ (function (_super) {
         return _this;
     }
     return MissingObject;
-}(InvalidError));
+}(S3Error));
 exports.MissingObject = MissingObject;
 var ExistingObject = /** @class */ (function (_super) {
     __extends(ExistingObject, _super);
@@ -66,5 +66,5 @@ var ExistingObject = /** @class */ (function (_super) {
         return _this;
     }
     return ExistingObject;
-}(InvalidError));
+}(S3Error));
 exports.ExistingObject = ExistingObject;

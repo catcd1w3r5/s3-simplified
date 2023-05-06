@@ -38,29 +38,34 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.S3Bucket = void 0;
 var errors_1 = require("../misc/errors");
-var s3BucketInternal_1 = require("./s3BucketInternal");
 var S3Bucket = /** @class */ (function () {
-    /**
-     * @internal
-     * @param lib
-     * @param bucketName
-     */
-    function S3Bucket(lib, bucketName) {
-        this.config = lib.config;
-        this.internal = new s3BucketInternal_1.S3BucketInternal(lib.s3, this.config, bucketName);
+    function S3Bucket(internal, config) {
+        this.internal = internal;
+        this.config = config;
     }
+    S3Bucket.prototype.getObjectId = function (s3Object) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.internal.getS3ObjectId(s3Object, this.config.objectCreation)];
+                    case 1: return [2 /*return*/, _a.sent()];
+                }
+            });
+        });
+    };
     S3Bucket.prototype.createObject = function (s3Object) {
         return __awaiter(this, void 0, void 0, function () {
             var s3ObjectId, size;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        s3ObjectId = this.internal.getS3ObjectId(s3Object, this.config.objectCreation);
-                        return [4 /*yield*/, this.assertNoConflicts(s3ObjectId)];
+                    case 0: return [4 /*yield*/, this.internal.getS3ObjectId(s3Object, this.config.objectCreation)];
                     case 1:
+                        s3ObjectId = _a.sent();
+                        return [4 /*yield*/, this.assertNoConflicts(s3ObjectId)];
+                    case 2:
                         _a.sent();
                         return [4 /*yield*/, s3Object.DataSize];
-                    case 2:
+                    case 3:
                         size = _a.sent();
                         if (size === undefined)
                             throw new Error("Data size is undefined");

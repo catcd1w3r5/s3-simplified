@@ -1,15 +1,12 @@
 import { IS3Object, S3BucketService } from "../../interfaces";
+import { S3BucketInternal } from "./s3BucketInternal";
 import { S3ObjectBuilder } from "../objects/s3ObjectBuilder";
-import { S3libInternal } from "../misc/s3libInternal";
+import { Config } from "../../interfaces/config";
 export declare class S3Bucket implements S3BucketService {
     private internal;
     private readonly config;
-    /**
-     * @internal
-     * @param lib
-     * @param bucketName
-     */
-    constructor(lib: S3libInternal, bucketName: string);
+    constructor(internal: S3BucketInternal, config: Config);
+    getObjectId(s3Object: S3ObjectBuilder): Promise<string>;
     createObject(s3Object: S3ObjectBuilder): Promise<IS3Object>;
     getObject(key: string): Promise<IS3Object>;
     getObjects(keys: string[]): Promise<IS3Object[]>;

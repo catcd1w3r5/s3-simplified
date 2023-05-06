@@ -1,5 +1,4 @@
-import { IS3, S3BucketService } from "../../interfaces";
-import { UserConfig } from "../../interfaces";
+import { IS3, S3BucketService, UserConfig } from "../../interfaces";
 import { bucketStatus } from "../../types";
 export declare class S3Lib implements IS3 {
     private readonly internal;

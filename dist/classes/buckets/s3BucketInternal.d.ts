@@ -2,6 +2,7 @@ import { S3 } from "@aws-sdk/client-s3";
 import { IS3Object } from "../../interfaces";
 import { S3ObjectBuilder } from "../objects/s3ObjectBuilder";
 import { Config, ObjectCreationConfig, SignedUrlConfig } from "../../interfaces/config";
+import { Regions } from "../../types";
 /**
  * An unsafe version of S3 bucket with no validation.
  */
@@ -13,10 +14,10 @@ export declare class S3BucketInternal {
     /**
      * @internal
      * @param s3 The s3 client to use
-     * @param config
+     * @param region
      * @param bucketName
      */
-    constructor(s3: S3, config: Config, bucketName: string);
+    constructor(s3: S3, region: Regions, bucketName: string);
     /**
      * Fetches the bucket ACL and bucket policy to determine if the bucket is public.
      * @param bucket The bucket to check
@@ -26,7 +27,7 @@ export declare class S3BucketInternal {
     isPublic(): Promise<boolean>;
     generateSignedUrl(key: string, signedUrlConfig: SignedUrlConfig): Promise<string>;
     generatePublicUrl(key: string): string;
-    getS3ObjectId(s3ObjectBuilder: S3ObjectBuilder, objectConfig: ObjectCreationConfig): string;
+    getS3ObjectId(s3ObjectBuilder: S3ObjectBuilder, objectConfig: ObjectCreationConfig): Promise<string>;
     createObject_Single(s3ObjectBuilder: S3ObjectBuilder, config: Config): Promise<IS3Object>;
     createObject_Multipart(s3ObjectBuilder: S3ObjectBuilder, config: Config): Promise<IS3Object>;
     getBucketACL(): Promise<import("@aws-sdk/client-s3").GetBucketAclCommandOutput>;

@@ -1,15 +1,4 @@
 "use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -60,14 +49,16 @@ var __rest = (this && this.__rest) || function (s, e) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.S3libInternal = void 0;
 var client_s3_1 = require("@aws-sdk/client-s3");
-var s3Bucket_1 = require("../buckets/s3Bucket");
 var utils_1 = require("../../utils");
+var DeepPartial_1 = require("../../utils/DeepPartial");
+var s3BucketInternal_1 = require("../buckets/s3BucketInternal");
 var S3libInternal = /** @class */ (function () {
     function S3libInternal(config) {
         var region = config.region, accessKey = config.accessKey, others = __rest(config, ["region", "accessKey"]);
         var credentials = { accessKeyId: accessKey.id, secretAccessKey: accessKey.secret };
         //strip off the accessKey from the config to prevent it from being logged
-        this.config = __assign(__assign(__assign({}, utils_1.defaultConfig), others), { region: region });
+        this.config = (0, DeepPartial_1.pruneAndMerge)(utils_1.defaultConfig, others);
+        this.config.region = region;
         this.s3 = new client_s3_1.S3({ region: region, credentials: credentials });
     }
     S3libInternal.prototype.createBucket = function (bucketName) {
@@ -76,12 +67,11 @@ var S3libInternal = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        console.log("Creating bucket: " + bucketName);
                         command = new client_s3_1.CreateBucketCommand({ Bucket: bucketName });
                         return [4 /*yield*/, this.s3.send(command)];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, new s3Bucket_1.S3Bucket(this, bucketName)];
+                        return [2 /*return*/, this.getBucket(bucketName)];
                 }
             });
         });
@@ -121,7 +111,7 @@ var S3libInternal = /** @class */ (function () {
     S3libInternal.prototype.getBucket = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, new s3Bucket_1.S3Bucket(this, bucketName)];
+                return [2 /*return*/, new s3BucketInternal_1.S3BucketInternal(this.s3, this.config.region, bucketName)];
             });
         });
     };

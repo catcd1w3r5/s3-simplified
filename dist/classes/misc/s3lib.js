@@ -39,16 +39,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.S3Lib = void 0;
 var errors_1 = require("./errors");
 var s3libInternal_1 = require("./s3libInternal");
+var s3Bucket_1 = require("../buckets/s3Bucket");
 var S3Lib = /** @class */ (function () {
     function S3Lib(config) {
         this.internal = new s3libInternal_1.S3libInternal(config);
     }
     S3Lib.prototype.createBucket = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
+            var bucketInternal;
             return __generator(this, function (_a) {
-                console.log("Creating bucket: " + bucketName);
-                this.validateBucketName(bucketName);
-                return [2 /*return*/, this.internal.createBucket(bucketName)];
+                switch (_a.label) {
+                    case 0:
+                        this.validateBucketName(bucketName);
+                        return [4 /*yield*/, this.internal.createBucket(bucketName)];
+                    case 1:
+                        bucketInternal = _a.sent();
+                        return [2 /*return*/, new s3Bucket_1.S3Bucket(bucketInternal, this.internal.config)];
+                }
             });
         });
     };
@@ -76,33 +83,42 @@ var S3Lib = /** @class */ (function () {
     };
     S3Lib.prototype.getBucket = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
+            var bucketInternal;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.assetBucketOwnership(bucketName)];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.internal.getBucket(bucketName)];
+                        return [4 /*yield*/, this.internal.getBucket(bucketName)];
+                    case 2:
+                        bucketInternal = _a.sent();
+                        return [2 /*return*/, new s3Bucket_1.S3Bucket(bucketInternal, this.internal.config)];
                 }
             });
         });
     };
     S3Lib.prototype.getOrCreateBucket = function (bucketName) {
         return __awaiter(this, void 0, void 0, function () {
-            var bucketStatus;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var bucketStatus, bucketInternal, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0: return [4 /*yield*/, this.getBucketStatus(bucketName)];
                     case 1:
-                        bucketStatus = _a.sent();
-                        switch (bucketStatus) {
-                            case 'owned':
-                                return [2 /*return*/, this.internal.getBucket(bucketName)];
-                            case 'not owned':
-                                throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " is owned by another user"));
-                            case 'not found':
-                                return [2 /*return*/, this.createBucket(bucketName)];
-                        }
-                        return [2 /*return*/];
+                        bucketStatus = _b.sent();
+                        if (bucketStatus === 'not owned')
+                            throw new errors_1.InvalidBucketName(bucketName, "".concat(bucketName, " is owned by another user"));
+                        if (!(bucketStatus === 'owned')) return [3 /*break*/, 3];
+                        return [4 /*yield*/, this.internal.getBucket(bucketName)];
+                    case 2:
+                        _a = _b.sent();
+                        return [3 /*break*/, 5];
+                    case 3: return [4 /*yield*/, this.internal.createBucket(bucketName)];
+                    case 4:
+                        _a = _b.sent();
+                        _b.label = 5;
+                    case 5:
+                        bucketInternal = _a;
+                        return [2 /*return*/, new s3Bucket_1.S3Bucket(bucketInternal, this.internal.config)];
                 }
             });
         });

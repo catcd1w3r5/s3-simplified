@@ -3,6 +3,7 @@
 import { Readable } from "stream";
 import { Metadata } from "../misc/metadata";
 import { IMetadata } from "../../interfaces";
+import { ObjectCreationConfig } from "../../interfaces/config";
 type AcceptedDataTypes = Readable | ReadableStream | Blob | string | Uint8Array | Buffer;
 export declare class S3ObjectBuilder {
     private metadata;
@@ -14,8 +15,8 @@ export declare class S3ObjectBuilder {
     get Type(): string | undefined;
     get Extension(): string | undefined;
     private generateExtension;
-    get UUID(): string;
-    private set UUID(value);
+    getUUID(config: ObjectCreationConfig): Promise<string>;
+    private generateUUID;
     AsBuffer(): Promise<Buffer>;
 }
 export {};

@@ -1,6 +1,6 @@
 import {MB, Minute} from "./constants";
 import {OptionalConfig} from "../interfaces/config";
-import {generateUUID} from "./generateUUID";
+import {defaultHashFn} from "./defaultHashFnFallback";
 
 export const defaultConfig: OptionalConfig = {
 
@@ -15,9 +15,9 @@ export const defaultConfig: OptionalConfig = {
         },
         appendFileTypeToKey: true,
         hash: {
-            function :generateUUID,
-            requireBuffer: true,
-            requireMetadata: true,
+            function :defaultHashFn,
+            requireBuffer: false,
+            requireMetadata: false,
         }
     }
 }

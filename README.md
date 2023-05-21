@@ -82,3 +82,6 @@ private bucket, the url will be generated automatically using the presigned url 
 ## Highly customizable
 
 This utility is also has a highly customizable [config file](/src/interfaces/config.ts) to suit your needs.
+
+# Examples
+For an example of s3-simplified you can check out this project I made https://github.com/catcd1w3r5/s3-simplified-NextJS-example

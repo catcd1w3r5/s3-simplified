@@ -1,10 +1,10 @@
-import {IS3, S3BucketService, UserConfig} from "../../interfaces";
+import {IS3Region, S3BucketService, UserConfig} from "../../interfaces";
 import {InvalidBucketName} from "../errors";
 import {bucketStatus} from "../../types";
 import {S3RegionInternal} from "./s3RegionInternal";
 import {S3Bucket} from "../buckets/s3Bucket";
 
-export class S3Region implements IS3 {
+export class S3Region implements IS3Region {
     private readonly internal: S3RegionInternal;
 
     constructor(config: UserConfig) {

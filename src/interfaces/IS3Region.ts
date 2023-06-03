@@ -4,7 +4,7 @@ import {bucketStatus} from "../types";
 /**
  * An interface for interacting with Amazon S3.
  */
-export interface IS3 {
+export interface IS3Region {
 
     /**
      * Creates a new bucket with the given name.

@@ -1,6 +1,6 @@
 import {Regions} from "../types";
-import {DeepPartial} from "../utils/DeepPartial";
 import {IHashFunction} from "./IHashFunction";
+import {DeepPartial} from "../utils/DeepPartial";
 
 /**
  * The keys for the aws account
@@ -114,7 +114,7 @@ export interface ObjectCreationConfig {
 /**
  * The optional configuration for the s3 library
  */
-export interface OptionalConfig {
+export interface ProvidedConfig {
 
     /**
      * The settings for signed urls
@@ -133,12 +133,12 @@ export interface OptionalConfig {
 /**
  * The configuration for the s3 library
  */
-export interface Config extends RequiredConfig, OptionalConfig {
+export interface Config extends RequiredConfig, ProvidedConfig {
 }
 
 /**
  * The configuration for the s3 library
  */
-export interface UserConfig extends RequiredConfig, CredentialsConfig, DeepPartial<OptionalConfig> {
+export interface UserConfig extends RequiredConfig, CredentialsConfig, DeepPartial<ProvidedConfig> {
 }
 

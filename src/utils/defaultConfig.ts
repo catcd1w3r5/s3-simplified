@@ -1,7 +1,7 @@
-import {OptionalConfig} from "../interfaces/config";
+import {ProvidedConfig} from "../interfaces/config";
 import {defaultHashFn} from "./defaultHashFnFallback";
 
-export const defaultConfig: OptionalConfig = {
+export const defaultConfig: ProvidedConfig = {
     signedUrl: {
         expiration: 300, // 5 minutes
     },

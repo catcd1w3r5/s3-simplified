@@ -1,5 +1,5 @@
 import { IS3Object, S3BucketService } from '../../interfaces';
-import {ExistingObject, InvalidBucketName, MissingObject} from '../misc/errors';
+import {ExistingObject, InvalidBucketName, MissingObject} from '../errors';
 import { S3BucketInternal } from './s3BucketInternal';
 import { S3ObjectBuilder } from '../objects/s3ObjectBuilder';
 import { Config } from '../../interfaces/config';

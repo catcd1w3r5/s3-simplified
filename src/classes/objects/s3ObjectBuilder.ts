@@ -1,5 +1,5 @@
 import {Readable} from "stream";
-import {Metadata} from "../misc/metadata";
+import {Metadata} from "../metadata";
 import {IMetadata} from "../../interfaces";
 import {FileTypeParser} from "../../utils/fileTypeParser";
 import {ConvertToBuffer} from "../../utils/convertToBuffer";

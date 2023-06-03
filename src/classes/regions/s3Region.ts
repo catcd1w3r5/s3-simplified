@@ -1,14 +1,14 @@
 import {IS3, S3BucketService, UserConfig} from "../../interfaces";
-import {InvalidBucketName} from "./errors";
+import {InvalidBucketName} from "../errors";
 import {bucketStatus} from "../../types";
-import {S3libInternal} from "./s3libInternal";
+import {S3RegionInternal} from "./s3RegionInternal";
 import {S3Bucket} from "../buckets/s3Bucket";
 
-export class S3Lib implements IS3 {
-    private readonly internal: S3libInternal;
+export class S3Region implements IS3 {
+    private readonly internal: S3RegionInternal;
 
     constructor(config: UserConfig) {
-        this.internal = new S3libInternal(config);
+        this.internal = new S3RegionInternal(config);
     }
 
     public async createBucket(bucketName: string): Promise<S3BucketService> {

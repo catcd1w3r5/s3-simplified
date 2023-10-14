@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.15.11",
+    "eslint": "^8.51.0",
     "typescript": "^5.0.4"
   }
 }
